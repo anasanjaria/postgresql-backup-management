@@ -1,0 +1,50 @@
+version: '3.0'
+services:
+  etcd:
+    image: bitnami/etcd:3.4.3
+    container_name: etcd
+    hostname: etcd
+    environment:
+      ETCD_ENABLE_V2: 'true'
+      ALLOW_NONE_AUTHENTICATION: 'yes'
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_INITIAL_CLUSTER: etcd=http://etcd:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: pgEtcdCluster
+    command: etcd -name etcd
+
+  node-1: &spilo
+    image: registry.opensource.zalan.do/acid/spilo-14:2.1-p7
+    hostname: node-1
+    container_name: node-1
+    ports:
+    # Port 2379-2380  etcd
+    # Port 5432       Postgres
+    # Port 8008       Patroni
+    - "2379:2379"
+    - "2380:2380"
+    - "5432:5432"
+    - "8008:8008"
+    # Please use volume as opposed to tmpfs for production system.
+    tmpfs: /home/postgres/pgdata
+    depends_on:
+      - etcd
+    environment:
+      ETCDCTL_ENDPOINTS: http://etcd:2379
+      ETCD3_HOST: "etcd:2379"
+      # A password for the superuser.
+      PGPASSWORD_SUPERUSER: 'password'
+      SCOPE: 'test-cluster'
+      PGVERSION: 13
+      USE_ADMIN: 'false'
+  node-2:
+    <<: *spilo
+    hostname: node-2
+    container_name: node-2
+    ports:
+      - "5431:5432"
+    depends_on:
+      - node-1
