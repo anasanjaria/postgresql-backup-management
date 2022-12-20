@@ -40,6 +40,46 @@ services:
       SCOPE: 'test-cluster'
       PGVERSION: 13
       USE_ADMIN: 'false'
+      # Region of S3 bucket
+      AWS_REGION: '<REGION>'
+      # It should be in format 'https: //s3.AWS_REGION.amazonaws.com: 443'
+      AWS_ENDPOINT: 'https: //s3.eu-west-1.amazonaws.com: 443/'
+      # Conditional parameters AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY
+      # Only relevant when you are running it locally.
+      # On AWS cloud, you don't need to specify it. IAM profile takes care of it.
+      AWS_ACCESS_KEY_ID: '<AWS_ACCESS_KEY_ID>'
+      AWS_SECRET_ACCESS_KEY: '<AWS_SECRET_ACCESS_KEY>'
+      # AWS S3 bucket name for storing backups
+      WAL_S3_BUCKET: '<BUCKET_NAME_HERE>'
+      # The full path to the backup location on AWS S3
+      WALE_S3_PREFIX: 's3: //<BUCKET_NAME_HERE>/<BUCKET_OBJECT_HERE>/'
+      # It should be in format 'https+path: //s3.AWS_REGION.amazonaws.com: 443'
+      WALE_S3_ENDPOINT: 'https+path: //s3.eu-west-1.amazonaws.com: 443/'
+      # Spilo supports wal-e as well as wal-g for backups. Our system uses wal-g since wal-e is obsolete.
+      # Enforce using wal-g instead of wal-e for restores
+      USE_WALG_RESTORE: 'true'
+      # Enforce using wal-g instead of wal-e for backups
+      USE_WALG_BACKUP: 'true'
+      # To configure how many goroutines to use during backup-fetch and wal-fetch, use WALG_DOWNLOAD_CONCURRENCY.
+      # By default, WAL-G uses the minimum of the number of files to extract and 10.
+      WALG_DOWNLOAD_CONCURRENCY: 10
+      # To configure how many concurrency streams to use during backup uploading, use WALG_UPLOAD_CONCURRENCY.
+      # By default, WAL-G uses 16 streams.
+      WALG_UPLOAD_CONCURRENCY: 16
+      # If this setting is specified, during wal-push WAL-G will check the existence of WAL before uploading it.
+      # If the different file is already archived under the same name, WAL-G will return the non-zero exit code
+      # to prevent PostgreSQL from removing WAL.
+      WALG_PREVENT_WAL_OVERWRITE: 'true'
+      # To configure how many concurrency streams are reading disk during backup-push. By default, WAL-G uses 1 stream.
+      WALG_UPLOAD_DISK_CONCURRENCY: 1
+      # Maximum size of the WAL segments accumulated after the base backup to
+      # consider WAL-G restore instead of pg_basebackup.
+      WALE_BACKUP_THRESHOLD_MEGABYTES: 102400
+      # Maximum ratio (in percents) of the accumulated WAL files to the
+      # base backup to consider WAL-G restore instead of pg_basebackup.
+      WALE_BACKUP_THRESHOLD_PERCENTAGE: 30
+      # cron schedule for doing backups via WAL-G
+      BACKUP_SCHEDULE: '00 01 * * *'
   node-2:
     <<: *spilo
     hostname: node-2
