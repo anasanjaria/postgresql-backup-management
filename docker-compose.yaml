@@ -88,3 +88,50 @@ services:
       - "5431:5432"
     depends_on:
       - node-1
+  restore-node-from-backup:
+    image: registry.opensource.zalan.do/acid/spilo-14:2.1-p7
+    hostname: node-3
+    container_name: node-3
+    ports:
+      # Port 2379-2380  etcd
+      # Port 5432       Postgres
+      # Port 8008       Patroni
+      - "2379:2379"
+      - "2380:2380"
+      - "5432:5432"
+      - "8008:8008"
+    # Please use volume as opposed to tmpfs for production system.
+    tmpfs: /home/postgres/pgdata
+    environment:
+      SCOPE: 'test-cluster'
+      PGVERSION: 13
+      USE_ADMIN: 'false'
+      # A password for the superuser.
+      # Please use the same password as that of the one used while backing up.
+      PGPASSWORD_SUPERUSER: '<PASSWORD_HERE>'
+      CLONE_WAL_S3_BUCKET: '<BUCKET_NAME_HERE>'
+      CLONE_WALE_S3_PREFIX: 's3://<BUCKET_NAME_HERE>/<BUCKET_OBJECT_HERE>/'
+      CLONE_WALE_S3_ENDPOINT: 'https+path://s3.AWS_REGION.amazonaws.com:443'
+      CLONE_AWS_REGION: '<AWS_REGION>'
+      CLONE_AWS_ENDPOINT: 'https://s3.AWS_REGION.amazonaws.com/'
+      # Conditional parameters CLONE_AWS_ACCESS_KEY_ID & CLONE_AWS_SECRET_ACCESS_KEY
+      # Only relevant when you are running it locally.
+      # On AWS cloud, you don't need to specify it. IAM profile takes care of it.
+      CLONE_AWS_ACCESS_KEY_ID: '<AWS_ACCESS_KEY_ID>'
+      CLONE_AWS_SECRET_ACCESS_KEY: '<AWS_SECRET_ACCESS_KEY>'
+      CLONE_USE_WALG_RESTORE: 'true'
+      # Even though we are cloning but spilo need this env variable to be true.
+      # Otherwise, it fails to detect correct AWS region.
+      CLONE_USE_WALG_BACKUP: 'true'
+      CLONE_WALG_DOWNLOAD_CONCURRENCY: 10
+      # Please note that our system uses wal-g. So, using "CLONE_WITH_WALE" does not mean
+      # that it uses wal-e. It is still using wal-g.
+      CLONE_METHOD: 'CLONE_WITH_WALE'
+      # Ignore the following setting if you want to recover from the latest backup.
+      # (Optional) when you would like to restore backup at given timestamp,
+      # set the time stamp up to which recovery will proceed.
+      # Please specify it as `YYYY-mm-dd HH:mm:ss+00:00`.
+      #
+      # It's important to specify timezone. You can read more on this topic here [1]
+      # [1] https://postgresqlco.nf/doc/en/param/recovery_target_time/
+      CLONE_TARGET_TIME: '<timestamp-with-timezone>'
